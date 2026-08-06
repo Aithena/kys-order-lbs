@@ -26,20 +26,18 @@ npm run dev
 
 ## GitHub Pages
 
-当前用 **分支部署**（不依赖 Actions；账号计费恢复后可改回 Actions 自动远程打包）。
+推荐用 **GitHub Actions** 自动远程打包部署（推送 `main` 即发布）。
 
-1. 仓库 Settings → Pages → Source：选 **Deploy from a branch**
-2. Branch：`main`，目录：`/docs`
+1. 仓库 Settings → Pages → Source：选 **GitHub Actions**
+2. 仓库 Settings → Secrets and variables → Actions，添加：
+   - `VITE_AMAP_KEY`
+   - `VITE_AMAP_SECURITY_JS_CODE`
+   - `VITE_AMAP_SERVICE_HOST`（可选，默认 `https://restapi.amap.com`）
 3. 访问：https://aithena.github.io/kys-order-lbs/
 
-更新站点时本地执行：
+也可在 Actions 里手动触发工作流 `Deploy GitHub Pages`。
 
-```bash
-npm run build:docs
-git add docs
-git commit -m "Update GitHub Pages docs build"
-git push
-```
+备用（不走 Actions）：本地 `npm run build:docs` 后提交 `docs/`，Pages Source 选分支 `main` / `/docs`。
 
 ### 测试数据
 

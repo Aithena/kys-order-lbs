@@ -1,8 +1,8 @@
 name: Deploy GitHub Pages
 
-# Temporarily manual-only: account Actions may be billing-locked.
-# Prefer docs/ branch deploy until unlocked; then restore `push` trigger.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -31,6 +31,10 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          VITE_AMAP_KEY: ${{ secrets.VITE_AMAP_KEY }}
+          VITE_AMAP_SECURITY_JS_CODE: ${{ secrets.VITE_AMAP_SECURITY_JS_CODE }}
+          VITE_AMAP_SERVICE_HOST: ${{ secrets.VITE_AMAP_SERVICE_HOST }}
         run: npm run build
 
       - name: Add .nojekyll

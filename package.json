@@ -10,11 +10,14 @@
     "build:docs": "npm run build && node scripts/sync-docs.mjs"
   },
   "dependencies": {
+    "@amap/amap-jsapi-loader": "^1.0.1",
     "element-plus": "^2.9.7",
     "leaflet": "^1.9.4",
     "vue": "^3.5.13"
   },
   "devDependencies": {
+    "@types/amap-js-api": "^1.4.16",
+    "@types/amap-js-api-driving": "^1.4.4",
     "@types/leaflet": "^1.9.16",
     "@vitejs/plugin-vue": "^5.2.3",
     "less": "^4.8.1",

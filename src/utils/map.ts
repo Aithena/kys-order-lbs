@@ -26,6 +26,15 @@ export function createRoleIcon(role: MarkerRole, title: string): L.DivIcon {
   })
 }
 
+export function createDistanceLabel(text: string, color: string): L.DivIcon {
+  return L.divIcon({
+    className: 'lbs-distance',
+    html: `<div class="lbs-distance-label" style="border-color:${color};color:${color}">${text}</div>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  })
+}
+
 /** 与 kys-therapist-map 相同的高德瓦片源 */
 export function createAmapTileLayer(): L.TileLayer {
   return L.tileLayer(

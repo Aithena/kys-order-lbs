@@ -106,7 +106,8 @@ async function markPoints() {
       travelDuration = formatDuration(driving.durationSeconds)
     } catch (routeErr) {
       console.warn('高德驾车规划失败，回退直线距离', routeErr)
-      ElMessage.warning('驾车路径规划失败，已改用直线距离')
+      const detail = routeErr instanceof Error ? routeErr.message : '未知错误'
+      ElMessage.warning(`驾车路径规划失败，已改用直线距离（${detail}）`)
     }
 
     const travelText = formatDistance(travelMeters)

@@ -24,11 +24,18 @@ npm run dev
 
 访问：http://127.0.0.1:18805/
 
+## GitHub Pages
 
+推送到 `main` 后由 Actions 自动构建并发布。
+
+1. 仓库 Settings → Pages → Source：选择 **GitHub Actions**
+2. 访问：https://aithena.github.io/kys-order-lbs/
+
+也可在 Actions 里手动触发工作流 `Deploy GitHub Pages`。
 
 ### 测试数据
 
-```
-{"way":0,"soure":1,"merchantId":4,"merchantName":"康医手科技 （用于测试）","technicianId":1,"technicianName":"唐梦玲","technicianPhone":"15874180949","technicianLatitude":28.217548844633633,"technicianLongitude":113.09970706701279,"customerLatitude":28.2175,"customerLongitude":113.011,"arrivalTime":"2026-08-06 10:30:00","buyMessage":"允许电联","homeMode":0,"outLetId":0,"scene":2,"soureId":"1","sourceCategory":1,"soureDetail":"{\\"techId\\":1,\\"type\\":\\"ecard\\",\\"pageName\\":\\"名片详情\\"}","schoolId":2,"schoolName":"柳奕反射疗法","goodss":[{"goodsType":0,"goodsId":121,"goodsTitle":"测试项目","goodsGroupId":40,"goodsGroupName":"非遗推拿","cover":"https://kys-cdn.kangyishou.com/prod/kys-platform/2026/03/13/74330e5dc813f7aa4f6ab357040103e6.png","duration":30,"fee":1,"dashFee":0,"quantity":1}],"tripFee":0,"address":{"customerAddressId":30019,"fullName":"唐女士","phone":"15874180949","province":430000,"city":430100,"district":430121,"regionName":"湖南省长沙市长沙县","address":"盼盼路28号星沙希尔顿欢朋酒店一楼 皇牛潮汕牛肉火锅(长沙店)","lat":28.217687,"lng":113.09939,"distance":0.1}}
+```JSON
+{"way":0,"soure":1,"merchantId":4,"merchantName":"康医手科技 （用于测试）","technicianId":1,"technicianName":"唐梦玲","technicianPhone":"15874180949","technicianLatitude":28.217548844633633,"technicianLongitude":113.09970706701279,"customerLatitude":28.212,"customerLongitude":113.091,"arrivalTime":"2026-08-06 10:30:00","buyMessage":"允许电联","homeMode":0,"outLetId":0,"scene":2,"soureId":"1","sourceCategory":1,"soureDetail":"{\"techId\":1,\"type\":\"ecard\",\"pageName\":\"名片详情\"}","schoolId":2,"schoolName":"柳奕反射疗法","goodss":[{"goodsType":0,"goodsId":121,"goodsTitle":"测试项目","goodsGroupId":40,"goodsGroupName":"非遗推拿","cover":"https://kys-cdn.kangyishou.com/prod/kys-platform/2026/03/13/74330e5dc813f7aa4f6ab357040103e6.png","duration":30,"fee":1,"dashFee":0,"quantity":1}],"tripFee":0,"address":{"customerAddressId":30019,"fullName":"唐女士","phone":"15874180949","province":430000,"city":430100,"district":430121,"regionName":"湖南省长沙市长沙县","address":"盼盼路28号星沙希尔顿欢朋酒店一楼 皇牛潮汕牛肉火锅(长沙店)","lat":28.227687,"lng":113.09939,"distance":0.1}}
 
 ```

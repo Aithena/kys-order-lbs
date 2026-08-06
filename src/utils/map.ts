@@ -26,12 +26,23 @@ export function createRoleIcon(role: MarkerRole, title: string): L.DivIcon {
   })
 }
 
-export function createDistanceLabel(text: string, color: string): L.DivIcon {
+export type DistanceLabelKind = 'driving' | 'straight'
+
+export function createDistanceLabel(
+  title: string,
+  value: string,
+  kind: DistanceLabelKind,
+): L.DivIcon {
   return L.divIcon({
-    className: 'lbs-distance',
-    html: `<div class="lbs-distance-label" style="border-color:${color};color:${color}">${text}</div>`,
-    iconSize: [0, 0],
-    iconAnchor: [0, 0],
+    className: `lbs-distance lbs-distance--${kind}`,
+    html: `
+      <div class="lbs-distance-chip lbs-distance-chip--${kind}">
+        <div class="lbs-distance-chip__title">${title}</div>
+        <div class="lbs-distance-chip__value">${value}</div>
+      </div>
+    `,
+    iconSize: [72, 32],
+    iconAnchor: [36, 16],
   })
 }
 

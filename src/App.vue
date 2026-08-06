@@ -9,7 +9,7 @@ import {
   DEFAULT_CENTER,
   DEFAULT_ZOOM,
 } from './utils/map'
-import { formatDistance, haversineMeters, midLatLng } from './utils/geo'
+import { formatDistance, haversineMeters, pointAlongPath } from './utils/geo'
 import { fetchDrivingRoute, formatDuration } from './utils/amap-route'
 import { parseOrderPayload, toMapPoints } from './utils/order'
 
@@ -110,32 +110,37 @@ async function markPoints() {
     }
 
     const travelText = formatDistance(travelMeters)
+    const travelTitle = travelMode === '驾车' ? '驾车距离' : '出行距离'
     const travelPopup = [
       '技师 → 服务场所',
-      `出行距离（${travelMode}）：${travelText}`,
+      `${travelTitle}：${travelText}`,
       travelDuration ? `预计耗时：${travelDuration}` : '',
     ]
       .filter(Boolean)
       .join('<br/>')
 
+    const travelLatLngs = travelPath.map((p) => {
+      if (Array.isArray(p)) return [p[0], p[1]] as [number, number]
+      const ll = L.latLng(p)
+      return [ll.lat, ll.lng] as [number, number]
+    })
+
     markerGroup.addLayer(
-      L.polyline(travelPath, {
+      L.polyline(travelLatLngs, {
         color: '#1677ff',
         weight: 4,
         opacity: 0.85,
       }).bindPopup(travelPopup),
     )
 
-    const travelLabelAt =
-      travelPath.length >= 2
-        ? (travelPath[Math.floor(travelPath.length / 2)] as [number, number])
-        : midLatLng(technician.lat, technician.lng, venue.lat, venue.lng)
-
+    // 驾车标签压在路径上（约 35% 处，避开与直线标签重叠）
+    const travelLabelAt = pointAlongPath(travelLatLngs, 0.35)
     markerGroup.addLayer(
       L.marker(travelLabelAt, {
-        icon: createDistanceLabel(`${travelMode} ${travelText}`, '#1677ff'),
+        icon: createDistanceLabel(travelTitle, travelText, 'driving'),
         interactive: false,
         keyboard: false,
+        zIndexOffset: 600,
       }),
     )
 
@@ -147,25 +152,27 @@ async function markPoints() {
       venue.lng,
     )
     const customerText = formatDistance(customerMeters)
+    const straightPath: Array<[number, number]> = [
+      [customer.lat, customer.lng],
+      [venue.lat, venue.lng],
+    ]
     markerGroup.addLayer(
-      L.polyline(
-        [
-          [customer.lat, customer.lng],
-          [venue.lat, venue.lng],
-        ],
-        {
-          color: '#fa8c16',
-          weight: 3,
-          opacity: 0.9,
-          dashArray: '10 8',
-        },
-      ).bindPopup(`客户 → 服务场所<br/>直线距离：${customerText}`),
+      L.polyline(straightPath, {
+        color: '#fa8c16',
+        weight: 3,
+        opacity: 0.9,
+        dashArray: '10 8',
+      }).bindPopup(`客户 → 服务场所<br/>直线距离：${customerText}`),
     )
+
+    // 直线标签压在虚线中点上
+    const straightLabelAt = pointAlongPath(straightPath, 0.5)
     markerGroup.addLayer(
-      L.marker(midLatLng(customer.lat, customer.lng, venue.lat, venue.lng), {
-        icon: createDistanceLabel(`直线 ${customerText}`, '#fa8c16'),
+      L.marker(straightLabelAt, {
+        icon: createDistanceLabel('直线距离', customerText, 'straight'),
         interactive: false,
         keyboard: false,
+        zIndexOffset: 500,
       }),
     )
 
@@ -218,18 +225,24 @@ onBeforeUnmount(() => {
 
     <div v-if="routeSummary" class="summary">
       <div class="summary-title">距离信息</div>
-      <div class="summary-row">
-        <span class="dot travel" />
-        技师 → 服务场所：{{ routeSummary.travelDistance }}
-        <span class="hint">{{ routeSummary.travelMode }}</span>
+      <div class="summary-card travel">
+        <div class="summary-card__head">
+          <span class="line-sample solid" />
+          <span>技师 → 服务场所</span>
+          <span class="tag">{{ routeSummary.travelMode }}</span>
+        </div>
+        <div class="summary-card__value">{{ routeSummary.travelDistance }}</div>
+        <div v-if="routeSummary.travelDuration" class="summary-card__meta">
+          预计耗时 {{ routeSummary.travelDuration }}
+        </div>
       </div>
-      <div v-if="routeSummary.travelDuration" class="summary-row sub">
-        预计耗时：{{ routeSummary.travelDuration }}
-      </div>
-      <div class="summary-row">
-        <span class="dot customer" />
-        客户 → 服务场所：{{ routeSummary.customerStraightDistance }}
-        <span class="hint">直线</span>
+      <div class="summary-card customer">
+        <div class="summary-card__head">
+          <span class="line-sample dashed" />
+          <span>客户 → 服务场所</span>
+          <span class="tag">直线</span>
+        </div>
+        <div class="summary-card__value">{{ routeSummary.customerStraightDistance }}</div>
       </div>
     </div>
 
@@ -283,51 +296,83 @@ onBeforeUnmount(() => {
     left: 16px;
     bottom: 24px;
     z-index: 1000;
-    min-width: 240px;
-    padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+    width: 260px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     font-size: 13px;
-    line-height: 1.6;
     color: #333;
 
     .summary-title {
-      margin-bottom: 6px;
+      margin-bottom: 10px;
       font-weight: 600;
+      font-size: 14px;
     }
 
-    .summary-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    .summary-card {
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #f7f8fa;
 
-      &.sub {
-        padding-left: 16px;
-        color: #666;
-        font-size: 12px;
+      & + .summary-card {
+        margin-top: 8px;
       }
-    }
-
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
 
       &.travel {
-        background: #1677ff;
+        border-left: 3px solid #1677ff;
       }
 
       &.customer {
-        background: #fa8c16;
+        border-left: 3px solid #fa8c16;
       }
-    }
 
-    .hint {
-      margin-left: auto;
-      color: #999;
-      font-size: 12px;
+      .summary-card__head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #666;
+        font-size: 12px;
+      }
+
+      .summary-card__value {
+        margin-top: 4px;
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: #1f1f1f;
+      }
+
+      .summary-card__meta {
+        margin-top: 4px;
+        color: #8c8c8c;
+        font-size: 12px;
+      }
+
+      .tag {
+        margin-left: auto;
+        padding: 0 6px;
+        border-radius: 999px;
+        background: #fff;
+        color: #8c8c8c;
+        font-size: 11px;
+      }
+
+      .line-sample {
+        width: 16px;
+        height: 0;
+        border-top: 3px solid currentColor;
+        flex-shrink: 0;
+
+        &.solid {
+          color: #1677ff;
+        }
+
+        &.dashed {
+          color: #fa8c16;
+          border-top-style: dashed;
+        }
+      }
     }
   }
 }
@@ -359,19 +404,47 @@ onBeforeUnmount(() => {
 }
 
 :deep(.lbs-distance) {
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-:deep(.lbs-distance-label) {
-  transform: translate(-50%, -50%);
-  padding: 2px 8px;
+:deep(.lbs-distance-chip) {
+  display: inline-block;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: none;
+  margin: 0;
+  padding: 5px;
   white-space: nowrap;
-  font-size: 12px;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid;
-  border-radius: 999px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  font-size: 10px;
+  line-height: 1.1;
+  text-align: center;
+
+  .lbs-distance-chip__title,
+  .lbs-distance-chip__value {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  &--driving {
+    border-color: #1677ff;
+    color: #1677ff;
+  }
+
+  &--straight {
+    border-color: #fa8c16;
+    color: #fa8c16;
+  }
 }
+
 </style>

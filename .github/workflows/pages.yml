@@ -1,8 +1,8 @@
 name: Deploy GitHub Pages
 
+# Temporarily manual-only: account Actions may be billing-locked.
+# Prefer docs/ branch deploy until unlocked; then restore `push` trigger.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

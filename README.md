@@ -26,12 +26,20 @@ npm run dev
 
 ## GitHub Pages
 
-推送到 `main` 后由 Actions 自动构建并发布。
+当前用 **分支部署**（不依赖 Actions；账号计费恢复后可改回 Actions 自动远程打包）。
 
-1. 仓库 Settings → Pages → Source：选择 **GitHub Actions**
-2. 访问：https://aithena.github.io/kys-order-lbs/
+1. 仓库 Settings → Pages → Source：选 **Deploy from a branch**
+2. Branch：`main`，目录：`/docs`
+3. 访问：https://aithena.github.io/kys-order-lbs/
 
-也可在 Actions 里手动触发工作流 `Deploy GitHub Pages`。
+更新站点时本地执行：
+
+```bash
+npm run build:docs
+git add docs
+git commit -m "Update GitHub Pages docs build"
+git push
+```
 
 ### 测试数据
 

@@ -1,7 +1,12 @@
 import type { MapPoint, OrderLbsPayload } from '../types'
 
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value)
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value)
+    if (Number.isFinite(n)) return n
+  }
+  return null
 }
 
 export function parseOrderPayload(raw: string): OrderLbsPayload {
@@ -16,20 +21,42 @@ export function parseOrderPayload(raw: string): OrderLbsPayload {
     throw new Error('请输入有效的订单 JSON 对象')
   }
 
-  const payload = data as Partial<OrderLbsPayload>
-  const address = payload.address
+  const payload = data as Record<string, unknown>
+  const addressRaw = payload.address
+  if (!addressRaw || typeof addressRaw !== 'object') {
+    throw new Error('缺少服务场所经纬度：address.lat / address.lng')
+  }
+  const address = addressRaw as Record<string, unknown>
 
-  if (!isFiniteNumber(payload.technicianLatitude) || !isFiniteNumber(payload.technicianLongitude)) {
+  const technicianLatitude = toFiniteNumber(payload.technicianLatitude)
+  const technicianLongitude = toFiniteNumber(payload.technicianLongitude)
+  const customerLatitude = toFiniteNumber(payload.customerLatitude)
+  const customerLongitude = toFiniteNumber(payload.customerLongitude)
+  const venueLat = toFiniteNumber(address.lat)
+  const venueLng = toFiniteNumber(address.lng)
+
+  if (technicianLatitude == null || technicianLongitude == null) {
     throw new Error('缺少技师经纬度：technicianLatitude / technicianLongitude')
   }
-  if (!isFiniteNumber(payload.customerLatitude) || !isFiniteNumber(payload.customerLongitude)) {
+  if (customerLatitude == null || customerLongitude == null) {
     throw new Error('缺少客户经纬度：customerLatitude / customerLongitude')
   }
-  if (!address || !isFiniteNumber(address.lat) || !isFiniteNumber(address.lng)) {
+  if (venueLat == null || venueLng == null) {
     throw new Error('缺少服务场所经纬度：address.lat / address.lng')
   }
 
-  return payload as OrderLbsPayload
+  return {
+    ...(payload as unknown as OrderLbsPayload),
+    technicianLatitude,
+    technicianLongitude,
+    customerLatitude,
+    customerLongitude,
+    address: {
+      ...(address as unknown as OrderLbsPayload['address']),
+      lat: venueLat,
+      lng: venueLng,
+    },
+  }
 }
 
 export function toMapPoints(payload: OrderLbsPayload): MapPoint[] {

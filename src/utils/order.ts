@@ -1,6 +1,7 @@
 import type { MapPoint, OrderLbsPayload } from '../types'
 
 function toFiniteNumber(value: unknown): number | null {
+  if (value == null || value === '') return null
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value === 'string' && value.trim() !== '') {
     const n = Number(value)
@@ -38,19 +39,20 @@ export function parseOrderPayload(raw: string): OrderLbsPayload {
   if (technicianLatitude == null || technicianLongitude == null) {
     throw new Error('缺少技师经纬度：technicianLatitude / technicianLongitude')
   }
-  if (customerLatitude == null || customerLongitude == null) {
-    throw new Error('缺少客户经纬度：customerLatitude / customerLongitude')
-  }
   if (venueLat == null || venueLng == null) {
     throw new Error('缺少服务场所经纬度：address.lat / address.lng')
   }
+
+  // 客户经纬度允许 null；只传一侧时视为无效，不展示客户点
+  const hasCustomer =
+    customerLatitude != null && customerLongitude != null
 
   return {
     ...(payload as unknown as OrderLbsPayload),
     technicianLatitude,
     technicianLongitude,
-    customerLatitude,
-    customerLongitude,
+    customerLatitude: hasCustomer ? customerLatitude : null,
+    customerLongitude: hasCustomer ? customerLongitude : null,
     address: {
       ...(address as unknown as OrderLbsPayload['address']),
       lat: venueLat,
@@ -64,20 +66,13 @@ export function toMapPoints(payload: OrderLbsPayload): MapPoint[] {
     .filter(Boolean)
     .join(' ')
 
-  return [
+  const points: MapPoint[] = [
     {
       role: 'technician',
       label: '技师位置',
       lat: payload.technicianLatitude,
       lng: payload.technicianLongitude,
       detail: [payload.technicianName, payload.technicianPhone].filter(Boolean).join(' · '),
-    },
-    {
-      role: 'customer',
-      label: '客户位置',
-      lat: payload.customerLatitude,
-      lng: payload.customerLongitude,
-      detail: [payload.address.fullName, payload.address.phone].filter(Boolean).join(' · '),
     },
     {
       role: 'venue',
@@ -87,4 +82,16 @@ export function toMapPoints(payload: OrderLbsPayload): MapPoint[] {
       detail: venueAddress || [payload.schoolName, payload.merchantName].filter(Boolean).join(' · '),
     },
   ]
+
+  if (payload.customerLatitude != null && payload.customerLongitude != null) {
+    points.splice(1, 0, {
+      role: 'customer',
+      label: '客户位置',
+      lat: payload.customerLatitude,
+      lng: payload.customerLongitude,
+      detail: [payload.address.fullName, payload.address.phone].filter(Boolean).join(' · '),
+    })
+  }
+
+  return points
 }

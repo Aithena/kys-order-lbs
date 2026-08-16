@@ -23,7 +23,7 @@ const routeSummary = ref<{
   travelDistance: string
   travelMode: string
   travelDuration?: string
-  customerStraightDistance: string
+  customerStraightDistance?: string
 } | null>(null)
 
 let map: L.Map | null = null
@@ -58,7 +58,7 @@ async function markPoints() {
     const technician = points.find((p) => p.role === 'technician')
     const customer = points.find((p) => p.role === 'customer')
     const venue = points.find((p) => p.role === 'venue')
-    if (!technician || !customer || !venue) {
+    if (!technician || !venue) {
       throw new Error('点位数据不完整')
     }
 
@@ -145,37 +145,40 @@ async function markPoints() {
       }),
     )
 
-    // 客户 → 服务场所：直线距离
-    const customerMeters = haversineMeters(
-      customer.lat,
-      customer.lng,
-      venue.lat,
-      venue.lng,
-    )
-    const customerText = formatDistance(customerMeters)
-    const straightPath: Array<[number, number]> = [
-      [customer.lat, customer.lng],
-      [venue.lat, venue.lng],
-    ]
-    markerGroup.addLayer(
-      L.polyline(straightPath, {
-        color: '#fa8c16',
-        weight: 3,
-        opacity: 0.9,
-        dashArray: '10 8',
-      }).bindPopup(`客户 → 服务场所<br/>直线距离：${customerText}`),
-    )
+    let customerText: string | undefined
+    if (customer) {
+      // 客户 → 服务场所：直线距离
+      const customerMeters = haversineMeters(
+        customer.lat,
+        customer.lng,
+        venue.lat,
+        venue.lng,
+      )
+      customerText = formatDistance(customerMeters)
+      const straightPath: Array<[number, number]> = [
+        [customer.lat, customer.lng],
+        [venue.lat, venue.lng],
+      ]
+      markerGroup.addLayer(
+        L.polyline(straightPath, {
+          color: '#fa8c16',
+          weight: 3,
+          opacity: 0.9,
+          dashArray: '10 8',
+        }).bindPopup(`客户 → 服务场所<br/>直线距离：${customerText}`),
+      )
 
-    // 直线标签压在虚线中点上
-    const straightLabelAt = pointAlongPath(straightPath, 0.5)
-    markerGroup.addLayer(
-      L.marker(straightLabelAt, {
-        icon: createDistanceLabel('直线距离', customerText, 'straight'),
-        interactive: false,
-        keyboard: false,
-        zIndexOffset: 500,
-      }),
-    )
+      // 直线标签压在虚线中点上
+      const straightLabelAt = pointAlongPath(straightPath, 0.5)
+      markerGroup.addLayer(
+        L.marker(straightLabelAt, {
+          icon: createDistanceLabel('直线距离', customerText, 'straight'),
+          interactive: false,
+          keyboard: false,
+          zIndexOffset: 500,
+        }),
+      )
+    }
 
     routeSummary.value = {
       travelDistance: travelText,
@@ -190,7 +193,7 @@ async function markPoints() {
     }
 
     dialogVisible.value = false
-    ElMessage.success('已标记点位并绘制路径距离')
+    ElMessage.success(customer ? '已标记点位并绘制路径距离' : '已标记技师与服务场所（无客户位置）')
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : '标记失败')
   } finally {
@@ -237,7 +240,7 @@ onBeforeUnmount(() => {
           预计耗时 {{ routeSummary.travelDuration }}
         </div>
       </div>
-      <div class="summary-card customer">
+      <div v-if="routeSummary.customerStraightDistance" class="summary-card customer">
         <div class="summary-card__head">
           <span class="line-sample dashed" />
           <span>客户 → 服务场所</span>
@@ -261,7 +264,7 @@ onBeforeUnmount(() => {
         :rows="16"
         :autosize="{ minRows: 12, maxRows: 28 }"
         resize="vertical"
-        placeholder="请粘贴订单 JSON，需包含技师/客户/address 经纬度（不限制长度）"
+        placeholder="请粘贴订单 JSON，需包含技师/address 经纬度；客户经纬度可为空"
       />
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>

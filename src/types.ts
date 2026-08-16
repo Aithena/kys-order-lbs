@@ -13,8 +13,8 @@ export interface OrderLbsPayload {
   technicianPhone?: string
   technicianLatitude: number
   technicianLongitude: number
-  customerLatitude: number
-  customerLongitude: number
+  customerLatitude?: number | null
+  customerLongitude?: number | null
   merchantName?: string
   schoolName?: string
   arrivalTime?: string

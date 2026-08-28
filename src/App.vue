@@ -310,9 +310,10 @@ onBeforeUnmount(() => {
         v-model="jsonText"
         type="textarea"
         :rows="16"
-        :autosize="{ minRows: 12, maxRows: 28 }"
+        :autosize="{ minRows: 12, maxRows: 20 }"
         resize="vertical"
         placeholder="请粘贴订单 JSON，需包含技师/address 经纬度；客户经纬度可为空"
+        style="font-size: 12px;"
         @paste="onJsonPaste"
         @blur="tryFormatJsonText"
       />

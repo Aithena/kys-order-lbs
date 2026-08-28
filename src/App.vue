@@ -11,7 +11,8 @@ import {
 } from './utils/map'
 import { formatDistance, haversineMeters, pointAlongPath } from './utils/geo'
 import { fetchDrivingRoute, formatDuration } from './utils/amap-route'
-import { parseOrderPayload, toMapPoints } from './utils/order'
+import { parseOrderPayload, toMapPoints, toOrderInfo } from './utils/order'
+import type { OrderInfoView } from './types'
 
 const SAMPLE_JSON = ``
 
@@ -25,6 +26,7 @@ const routeSummary = ref<{
   travelDuration?: string
   customerStraightDistance?: string
 } | null>(null)
+const orderInfo = ref<OrderInfoView | null>(null)
 
 let map: L.Map | null = null
 let markerGroup: L.FeatureGroup | null = null
@@ -186,6 +188,7 @@ async function markPoints() {
       travelDuration: travelDuration || undefined,
       customerStraightDistance: customerText,
     }
+    orderInfo.value = toOrderInfo(payload)
 
     const bounds = markerGroup.getBounds()
     if (bounds.isValid()) {
@@ -227,8 +230,37 @@ onBeforeUnmount(() => {
       </el-button>
     </div>
 
-    <div v-if="routeSummary" class="summary">
-      <div class="summary-title">距离信息</div>
+    <div v-if="orderInfo" class="float-panel order-info">
+      <div class="panel-title">
+        <span>订单信息</span>
+        <span v-if="orderInfo.serviceMode" class="mode-tag">{{ orderInfo.serviceMode }}</span>
+      </div>
+
+      <div v-for="(item, idx) in orderInfo.goods" :key="idx" class="goods-card">
+        <img
+          v-if="item.cover"
+          class="goods-card__cover"
+          :src="item.cover"
+          alt=""
+          @error="item.cover = undefined"
+        />
+        <div class="goods-card__body">
+          <div class="goods-card__title">{{ item.title }}</div>
+          <div v-if="item.meta" class="goods-card__meta">{{ item.meta }}</div>
+          <div v-if="item.fee" class="goods-card__fee">{{ item.fee }}</div>
+        </div>
+      </div>
+
+      <div class="order-rows">
+        <div v-for="row in orderInfo.rows" :key="row.label" class="order-row">
+          <span class="order-row__label">{{ row.label }}</span>
+          <span class="order-row__value">{{ row.value }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="routeSummary" class="float-panel summary">
+      <div class="panel-title">距离信息</div>
       <div class="summary-card travel">
         <div class="summary-card__head">
           <span class="line-sample solid" />
@@ -295,10 +327,8 @@ onBeforeUnmount(() => {
     z-index: 1000;
   }
 
-  .summary {
+  .float-panel {
     position: absolute;
-    left: 16px;
-    bottom: 24px;
     z-index: 1000;
     width: 260px;
     padding: 12px;
@@ -307,12 +337,112 @@ onBeforeUnmount(() => {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     font-size: 13px;
     color: #333;
+  }
 
-    .summary-title {
-      margin-bottom: 10px;
-      font-weight: 600;
-      font-size: 14px;
+  .panel-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .mode-tag {
+    margin-left: auto;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #f0f5ff;
+    color: #1677ff;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .order-info {
+    top: 16px;
+    left: 16px;
+    max-height: calc(100% - 252px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .goods-card {
+    display: flex;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 8px;
+    background: #f7f8fa;
+
+    & + .goods-card,
+    & + .order-rows {
+      margin-top: 8px;
     }
+
+    .goods-card__cover {
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #eee;
+    }
+
+    .goods-card__body {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .goods-card__title {
+      font-weight: 600;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+    .goods-card__meta {
+      margin-top: 2px;
+      color: #8c8c8c;
+      font-size: 12px;
+    }
+
+    .goods-card__fee {
+      margin-top: 2px;
+      color: #cf1322;
+      font-weight: 600;
+    }
+  }
+
+  .order-rows {
+    margin-top: 8px;
+
+    .order-row {
+      display: flex;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid #f0f0f0;
+      line-height: 1.4;
+
+      &:last-child {
+        padding-bottom: 0;
+        border-bottom: none;
+      }
+    }
+
+    .order-row__label {
+      flex: 0 0 56px;
+      color: #8c8c8c;
+      font-size: 12px;
+    }
+
+    .order-row__value {
+      flex: 1;
+      min-width: 0;
+      word-break: break-word;
+    }
+  }
+
+  .summary {
+    left: 16px;
+    bottom: 24px;
 
     .summary-card {
       padding: 10px 12px;

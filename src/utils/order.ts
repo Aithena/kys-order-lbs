@@ -1,4 +1,4 @@
-import type { MapPoint, OrderLbsPayload } from '../types'
+import type { MapPoint, OrderGoods, OrderInfoView, OrderLbsPayload } from '../types'
 
 function toFiniteNumber(value: unknown): number | null {
   if (value == null || value === '') return null
@@ -94,4 +94,99 @@ export function toMapPoints(payload: OrderLbsPayload): MapPoint[] {
   }
 
   return points
+}
+
+function formatFeeFen(fen: number): string {
+  const yuan = fen / 100
+  return yuan % 1 === 0 ? `¥${yuan}` : `¥${yuan.toFixed(2)}`
+}
+
+function parseSourcePage(detail: unknown): string | undefined {
+  if (detail == null || detail === '') return undefined
+  let obj: unknown = detail
+  if (typeof detail === 'string') {
+    try {
+      obj = JSON.parse(detail)
+    } catch {
+      return detail.trim() || undefined
+    }
+  }
+  if (obj && typeof obj === 'object' && 'pageName' in obj) {
+    const name = (obj as { pageName?: unknown }).pageName
+    if (typeof name === 'string' && name.trim()) return name.trim()
+  }
+  return undefined
+}
+
+function toGoodsView(item: OrderGoods) {
+  const title = item.goodsTitle?.trim() || '未命名项目'
+  const metaParts = [
+    item.goodsGroupName?.trim(),
+    item.duration != null && Number.isFinite(item.duration) ? `${item.duration}分钟` : '',
+    item.quantity != null && item.quantity > 1 ? `×${item.quantity}` : '',
+  ].filter(Boolean)
+
+  return {
+    title,
+    cover: item.cover?.trim() || undefined,
+    meta: metaParts.join(' · ') || undefined,
+    fee:
+      item.fee != null && Number.isFinite(item.fee) ? formatFeeFen(item.fee) : undefined,
+  }
+}
+
+export function toOrderInfo(payload: OrderLbsPayload): OrderInfoView {
+  const storeName = payload.storeName?.trim()
+  const fullName = payload.address.fullName?.trim()
+  const phone = payload.address.phone?.trim()
+  const rows: OrderInfoView['rows'] = []
+
+  if (payload.arrivalTime?.trim()) {
+    rows.push({ label: '预约时间', value: payload.arrivalTime.trim() })
+  }
+
+  const technician = [payload.technicianName, payload.technicianPhone]
+    .map((v) => v?.trim())
+    .filter(Boolean)
+    .join(' · ')
+  if (technician) rows.push({ label: '技师', value: technician })
+
+  if (payload.merchantName?.trim()) {
+    rows.push({ label: '商家', value: payload.merchantName.trim() })
+  }
+  if (payload.schoolName?.trim()) {
+    rows.push({ label: '医派', value: payload.schoolName.trim() })
+  }
+  if (storeName) rows.push({ label: '门店', value: storeName })
+
+  const addressText = [payload.address.regionName, payload.address.address]
+    .map((v) => v?.trim())
+    .filter(Boolean)
+    .join(' ')
+  if (addressText) rows.push({ label: '地址', value: addressText })
+
+  if (fullName && fullName !== storeName) {
+    rows.push({
+      label: '客户',
+      value: [fullName, phone].filter(Boolean).join(' · '),
+    })
+  } else if (phone) {
+    rows.push({ label: storeName ? '门店电话' : '联系电话', value: phone })
+  }
+
+  if (payload.tripFee != null && payload.tripFee > 0) {
+    rows.push({ label: '车费', value: formatFeeFen(payload.tripFee) })
+  }
+  if (payload.buyMessage?.trim()) {
+    rows.push({ label: '备注', value: payload.buyMessage.trim() })
+  }
+
+  const source = parseSourcePage(payload.soureDetail)
+  if (source) rows.push({ label: '来源', value: source })
+
+  return {
+    serviceMode: storeName ? '到店' : '上门',
+    goods: (payload.goodss ?? []).map(toGoodsView),
+    rows,
+  }
 }

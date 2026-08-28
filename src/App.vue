@@ -208,20 +208,19 @@ function openDialog() {
   dialogVisible.value = true
 }
 
-function tryFormatJsonText() {
+function formatJsonText() {
   const raw = jsonText.value.trim()
-  if (!raw) return
+  if (!raw) {
+    ElMessage.warning('请先输入 JSON')
+    return
+  }
 
   try {
     const parsed = JSON.parse(raw)
     jsonText.value = JSON.stringify(parsed, null, 2)
   } catch {
-    // 编辑中可能尚未构成完整 JSON，保持原样
+    ElMessage.error('JSON 格式无效，请检查后重试')
   }
-}
-
-function onJsonPaste() {
-  nextTick(() => tryFormatJsonText())
 }
 
 onMounted(async () => {
@@ -313,15 +312,18 @@ onBeforeUnmount(() => {
         :autosize="{ minRows: 12, maxRows: 20 }"
         resize="vertical"
         placeholder="请粘贴订单 JSON，需包含技师/address 经纬度；客户经纬度可为空"
-        style="font-size: 12px;"
-        @paste="onJsonPaste"
-        @blur="tryFormatJsonText"
+        class="json-textarea"
       />
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="markPoints">
-          确定
-        </el-button>
+        <div class="json-dialog-footer">
+          <el-button @click="formatJsonText">格式化</el-button>
+          <span>
+            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button type="primary" :loading="submitting" @click="markPoints">
+              确定
+            </el-button>
+          </span>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -598,6 +600,22 @@ onBeforeUnmount(() => {
     border-color: #fa8c16;
     color: #fa8c16;
   }
+}
+
+.json-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+:deep(.json-textarea .el-textarea__inner) {
+  font-size: 12px;
+  line-height: 1.6;
+  font-family: Consolas, Monaco, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-all;
 }
 
 </style>

@@ -609,7 +609,7 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-:deep(.json-textarea .el-textarea__inner) {
+.json-textarea .el-textarea__inner {
   font-size: 12px;
   line-height: 1.6;
   font-family: Consolas, Monaco, monospace;

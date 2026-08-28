@@ -609,13 +609,6 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-.json-textarea .el-textarea__inner {
-  font-size: 12px;
-  line-height: 1.6;
-  font-family: Consolas, Monaco, monospace;
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  word-break: break-all;
-}
+
 
 </style>

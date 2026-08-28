@@ -208,6 +208,22 @@ function openDialog() {
   dialogVisible.value = true
 }
 
+function tryFormatJsonText() {
+  const raw = jsonText.value.trim()
+  if (!raw) return
+
+  try {
+    const parsed = JSON.parse(raw)
+    jsonText.value = JSON.stringify(parsed, null, 2)
+  } catch {
+    // 编辑中可能尚未构成完整 JSON，保持原样
+  }
+}
+
+function onJsonPaste() {
+  nextTick(() => tryFormatJsonText())
+}
+
 onMounted(async () => {
   await nextTick()
   initMap()
@@ -297,6 +313,8 @@ onBeforeUnmount(() => {
         :autosize="{ minRows: 12, maxRows: 28 }"
         resize="vertical"
         placeholder="请粘贴订单 JSON，需包含技师/address 经纬度；客户经纬度可为空"
+        @paste="onJsonPaste"
+        @blur="tryFormatJsonText"
       />
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>

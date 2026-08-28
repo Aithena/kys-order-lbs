@@ -3,7 +3,6 @@
   padding: 0;
   box-sizing: border-box;
 }
-
 html,
 body,
 #app {
@@ -12,11 +11,9 @@ body,
   overflow: hidden;
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
-
-
 .el-overlay {
   backdrop-filter: blur(10px);
-  .el-dialog {
-    max-width: 90vw;
-  }
+}
+.el-overlay .el-dialog {
+  max-width: 90vw;
 }
